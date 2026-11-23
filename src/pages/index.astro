@@ -1,11 +1,2161 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="SNX Beast - Monster Truck Crushing & Survival">
+  <div class="simulation-container" id="simContainer">
+    <!-- TOP STATUS & SURVIVAL TELEMETRY BAR -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-badge">CHALLENGE</div>
+        <h1>SNX <span>BEAST-66</span></h1>
+      </div>
+      
+      <!-- SURVIVAL STATS (HEALTH, FUEL, SCORE, DISTANCE) -->
+      <div class="survival-hud">
+        <!-- Health Bar -->
+        <div class="hud-meter-card">
+          <div class="meter-header">
+            <span class="meter-icon">🛡️</span>
+            <span class="meter-label">HULL INTEGRITY</span>
+            <span class="meter-value" id="healthVal">100%</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill fill-health" id="healthBar"></div>
+          </div>
+        </div>
+
+        <!-- Fuel Bar -->
+        <div class="hud-meter-card">
+          <div class="meter-header">
+            <span class="meter-icon">⛽</span>
+            <span class="meter-label">FUEL TANK</span>
+            <span class="meter-value" id="fuelVal">100%</span>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill fill-fuel" id="fuelBar"></div>
+          </div>
+        </div>
+
+        <!-- Score & Distance & Crush Counter -->
+        <div class="score-card">
+          <div class="score-pill">
+            <span class="label">SCORE</span>
+            <span class="val" id="scoreDisplay">0</span>
+          </div>
+          <div class="score-pill">
+            <span class="label">DIST</span>
+            <span class="val" id="distDisplay">0m</span>
+          </div>
+          <div class="score-pill crush-pill">
+            <span class="label">CRUSHED</span>
+            <span class="val val-crush" id="crushDisplay">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="icon-btn" id="soundBtn" title="Toggle Sound [M]">
+          <svg viewBox="0 0 24 24" class="icon"><path fill="currentColor" d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5 9.77H8l-4 4V7l4 4h3.5v2zM16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          <span class="sound-text">SOUND: ON</span>
+        </button>
+        <button class="icon-btn" id="themeBtn" title="Toggle Lighting [L]">
+          <svg viewBox="0 0 24 24" class="icon"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 17.93V4.07a8 8 0 0 1 0 15.86z"/></svg>
+          <span id="lightingModeText">NEON NIGHT</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- FLOATING CORNER SPEEDOMETER & TACHOMETER CLUSTER (TOP-RIGHT: ZERO CAR OBSTRUCTION) -->
+    <aside class="corner-hud-cluster">
+      <div class="cluster-gauge">
+        <svg class="gauge-svg" viewBox="0 0 240 180">
+          <path d="M 30,145 A 90,90 0 1,1 210,145" fill="none" stroke="#1e293b" stroke-width="10" stroke-linecap="round"/>
+          <path d="M 30,145 A 90,90 0 1,1 210,145" fill="none" stroke="url(#speedGlowGrad)" stroke-width="10" 
+                stroke-linecap="round" stroke-dasharray="350" stroke-dashoffset="350" id="gaugeSpeedArc"/>
+          <path d="M 175,42 A 90,90 0 0,1 210,145" fill="none" stroke="#ff0055" stroke-width="5" opacity="0.6"/>
+
+          <g id="speedNeedle" transform="rotate(-130, 120, 125)">
+            <polygon points="117,125 123,125 121,30 119,30" fill="#00f3ff"/>
+            <circle cx="120" cy="125" r="12" fill="#0f172a" stroke="#00f3ff" stroke-width="2.5"/>
+            <circle cx="120" cy="125" r="4" fill="#ffffff"/>
+          </g>
+
+          <defs>
+            <linearGradient id="speedGlowGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#00f3ff"/>
+              <stop offset="60%" stop-color="#a3e635"/>
+              <stop offset="85%" stop-color="#f59e0b"/>
+              <stop offset="100%" stop-color="#ff0055"/>
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div class="gauge-center-content">
+          <div class="digital-speed" id="speedDigit">0</div>
+          <div class="speed-unit">KM / H</div>
+          <div class="gear-badge" id="gearIndicator">P</div>
+        </div>
+
+        <div class="rpm-strip">
+          <span class="rpm-label">RPM</span>
+          <div class="rpm-bar-track">
+            <div class="rpm-bar-fill" id="rpmBar"></div>
+          </div>
+          <span class="rpm-val" id="rpmVal">850</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- WORLD SCENE VIEWPORT -->
+    <div class="viewport" id="viewport">
+      <!-- PARALLAX ENVIRONMENT LAYERS -->
+      <div class="sky-gradient"></div>
+      <div class="stars-layer" id="starsLayer"></div>
+      <div class="city-skyline" id="citySkyline"></div>
+      <div class="midground-layer" id="midgroundLayer"></div>
+      <div class="speed-lines" id="speedLines"></div>
+
+      <!-- MODERN CYBER ROAD -->
+      <div class="ground-complex">
+        <div class="road-surface" id="roadSurface">
+          <div class="road-grid"></div>
+          <div class="road-lanes" id="roadLanes"></div>
+          <div class="road-reflectors"></div>
+          <div class="curb-neon-left"></div>
+          <div class="curb-neon-right"></div>
+        </div>
+      </div>
+
+      <!-- DYNAMIC OBSTACLE & COLLECTIBLES LAYER (CARS, BARRELS, FUEL CANS) -->
+      <div class="obstacles-layer" id="obstaclesLayer"></div>
+
+      <!-- FLOATING COMBAT TEXT & POPUPS -->
+      <div class="popups-layer" id="popupsLayer"></div>
+
+      <!-- VOLUMETRIC VEHICLE HEADLIGHT BEAM -->
+      <div class="headlight-volumetric" id="headlightCone">
+        <div class="beam-glow"></div>
+        <div class="beam-dust" id="beamDust"></div>
+      </div>
+
+      <!-- ROAD SKID MARKS & TIRE SMOKE PARTICLES -->
+      <div class="tire-smoke-layer" id="tireSmokeLayer"></div>
+
+      <!-- THE MONSTER TRUCK: FACING RIGHT & ELEVATED ABOVE ROAD -->
+      <div class="truck-assembly" id="truckAssembly">
+        <svg class="truck-svg" viewBox="0 0 850 560" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="chromeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="25%" stop-color="#94a3b8"/>
+              <stop offset="50%" stop-color="#f8fafc"/>
+              <stop offset="75%" stop-color="#475569"/>
+              <stop offset="100%" stop-color="#cbd5e1"/>
+            </linearGradient>
+
+            <linearGradient id="cageGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ff7b00"/>
+              <stop offset="45%" stop-color="#ff4800"/>
+              <stop offset="100%" stop-color="#b32400"/>
+            </linearGradient>
+
+            <linearGradient id="springGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#ffd000"/>
+              <stop offset="50%" stop-color="#ff9900"/>
+              <stop offset="100%" stop-color="#cc6600"/>
+            </linearGradient>
+
+            <linearGradient id="bodyPaint" x1="0%" y1="0%" x2="100%" y2="70%">
+              <stop offset="0%" stop-color="#d4ff00"/>
+              <stop offset="30%" stop-color="#a3e635"/>
+              <stop offset="70%" stop-color="#65a30d"/>
+              <stop offset="100%" stop-color="#365314"/>
+            </linearGradient>
+
+            <linearGradient id="windowTint" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#0284c7" stop-opacity="0.85"/>
+              <stop offset="50%" stop-color="#0369a1" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="#082f49" stop-opacity="0.95"/>
+            </linearGradient>
+
+            <radialGradient id="rubberTire" cx="50%" cy="50%" r="50%">
+              <stop offset="60%" stop-color="#1e2229"/>
+              <stop offset="85%" stop-color="#12151a"/>
+              <stop offset="98%" stop-color="#090a0d"/>
+              <stop offset="100%" stop-color="#000000"/>
+            </radialGradient>
+
+            <radialGradient id="rimGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#475569"/>
+              <stop offset="35%" stop-color="#0f172a"/>
+              <stop offset="75%" stop-color="#1e293b"/>
+              <stop offset="88%" stop-color="#ff4400"/>
+              <stop offset="100%" stop-color="#0a0a0a"/>
+            </radialGradient>
+
+            <filter id="brakeGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+
+            <radialGradient id="xenonBulb" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="30%" stop-color="#cffafe"/>
+              <stop offset="70%" stop-color="#38bdf8"/>
+              <stop offset="100%" stop-color="#0284c7"/>
+            </radialGradient>
+          </defs>
+
+          <!-- ROOT CAR GROUP FLIPPED TO FACE FORWARD TOWARDS THE RIGHT -->
+          <g transform="translate(850, 0) scale(-1, 1)">
+            <line x1="280" y1="410" x2="570" y2="410" stroke="#1e293b" stroke-width="18" stroke-linecap="round"/>
+            <line x1="280" y1="410" x2="570" y2="410" stroke="#475569" stroke-width="6" stroke-dasharray="16,8"/>
+
+            <!-- BACK WHEEL - REAR LEFT -->
+            <g class="wheel-group wheel-rear-back" id="wheelRearBack" transform="translate(590, 410) scale(0.92)">
+              <circle r="96" fill="#15181e" stroke="#090a0c" stroke-width="5"/>
+              <g class="tire-lugs" stroke="#252b36" stroke-width="12" stroke-linecap="round">
+                <path d="M-88,-35 L-65,-15 L-88,5 M-65,30 L-45,50 L-65,70 M-10,75 L15,90 L-10,95 M40,75 L65,60 L85,75 M75,10 L90,-15 L75,-35 M45,-65 L65,-85 L45,-95 M-20,-85 L-40,-70 L-65,-85" />
+              </g>
+              <circle r="52" fill="#0f172a" stroke="#1e293b" stroke-width="6"/>
+              <circle r="22" fill="#334155" stroke="#090a0c" stroke-width="3"/>
+            </g>
+
+            <!-- BACK WHEEL - FRONT LEFT -->
+            <g class="wheel-group wheel-front-back" id="wheelFrontBack" transform="translate(260, 410) scale(0.92)">
+              <circle r="96" fill="#15181e" stroke="#090a0c" stroke-width="5"/>
+              <g class="tire-lugs" stroke="#252b36" stroke-width="12" stroke-linecap="round">
+                <path d="M-88,-35 L-65,-15 L-88,5 M-65,30 L-45,50 L-65,70 M-10,75 L15,90 L-10,95 M40,75 L65,60 L85,75 M75,10 L90,-15 L75,-35 M45,-65 L65,-85 L45,-95 M-20,-85 L-40,-70 L-65,-85" />
+              </g>
+              <circle r="52" fill="#0f172a" stroke="#1e293b" stroke-width="6"/>
+              <circle r="22" fill="#334155" stroke="#090a0c" stroke-width="3"/>
+            </g>
+
+            <!-- 4-LINK SUSPENSION, CHROMOLY ROLL CAGE, CHASSIS -->
+            <g class="center-drivetrain">
+              <rect x="400" y="380" width="55" height="45" rx="8" fill="#1e293b" stroke="#475569" stroke-width="4"/>
+              <circle cx="427" cy="402" r="14" fill="#0f172a" stroke="#ff5500" stroke-width="3"/>
+              <line x1="400" y1="400" x2="270" y2="415" stroke="url(#chromeGrad)" stroke-width="8" stroke-linecap="round"/>
+              <line x1="455" y1="400" x2="585" y2="415" stroke="url(#chromeGrad)" stroke-width="8" stroke-linecap="round"/>
+            </g>
+
+            <g class="suspension-links" stroke="url(#cageGrad)" stroke-width="10" stroke-linecap="round">
+              <line x1="380" y1="340" x2="270" y2="415"/>
+              <line x1="380" y1="365" x2="270" y2="430"/>
+              <line x1="470" y1="340" x2="585" y2="415"/>
+              <line x1="470" y1="365" x2="585" y2="430"/>
+            </g>
+
+            <g class="coilovers">
+              <g class="shock front-shock">
+                <rect x="315" y="290" width="12" height="38" rx="4" fill="#0284c7" stroke="#ffffff" stroke-width="1.5"/>
+                <line x1="310" y1="280" x2="270" y2="415" stroke="url(#chromeGrad)" stroke-width="14" stroke-linecap="round"/>
+                <path d="M305,295 L275,310 L305,325 L275,340 L305,355 L275,370 L305,385 L275,400"
+                      fill="none" stroke="url(#springGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+
+              <g class="shock rear-shock">
+                <rect x="530" y="290" width="12" height="38" rx="4" fill="#0284c7" stroke="#ffffff" stroke-width="1.5"/>
+                <line x1="540" y1="280" x2="585" y2="415" stroke="url(#chromeGrad)" stroke-width="14" stroke-linecap="round"/>
+                <path d="M545,295 L575,310 L545,325 L575,340 L545,355 L575,370 L545,385 L575,400"
+                      fill="none" stroke="url(#springGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+            </g>
+
+            <g class="tubular-chassis" stroke="url(#cageGrad)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="280" y1="340" x2="570" y2="340"/>
+              <line x1="285" y1="340" x2="425" y2="280"/>
+              <line x1="425" y1="280" x2="565" y2="340"/>
+              <line x1="285" y1="280" x2="425" y2="340"/>
+              <line x1="425" y1="340" x2="565" y2="280"/>
+              <line x1="425" y1="275" x2="425" y2="345" stroke="#ff3b00" stroke-width="11"/>
+              <line x1="270" y1="280" x2="580" y2="280" stroke="#ffaa00" stroke-width="8"/>
+            </g>
+
+            <g class="underglow">
+              <line x1="280" y1="345" x2="570" y2="345" stroke="#00f3ff" stroke-width="6" opacity="0.85" filter="url(#brakeGlow)"/>
+            </g>
+
+            <!-- TRUCK BODY -->
+            <g class="truck-body-mount" id="truckBody">
+              <g class="exhaust-headers">
+                <path d="M600,240 C630,245 650,230 670,220" fill="none" stroke="url(#chromeGrad)" stroke-width="12" stroke-linecap="round"/>
+                <path d="M605,250 C635,255 655,240 675,230" fill="none" stroke="url(#chromeGrad)" stroke-width="11" stroke-linecap="round"/>
+                <ellipse cx="673" cy="223" rx="5" ry="9" fill="#0f172a" stroke="#ff4400" stroke-width="2"/>
+              </g>
+
+              <path class="body-shell" d="
+                M 170, 245
+                C 165, 230 180, 200 205, 185
+                L 285, 175
+                C 315, 140 340, 105 385, 95
+                L 510, 95
+                C 545, 95 565, 125 580, 155
+                L 645, 160
+                C 665, 162 675, 180 675, 205
+                L 670, 250
+                C 670, 260 655, 265 640, 265
+                L 590, 265
+                C 585, 240 560, 225 530, 225
+                C 500, 225 480, 240 470, 265
+                L 350, 265
+                C 340, 240 320, 225 290, 225
+                C 260, 225 240, 240 230, 265
+                L 185, 265
+                C 175, 265 170, 255 170, 245 Z
+              " fill="url(#bodyPaint)" stroke="#1a2e05" stroke-width="5" stroke-linejoin="round"/>
+
+              <g class="supercharger-assembly">
+                <path d="M 270,178 L 290,140 L 335,140 L 345,178 Z" fill="url(#chromeGrad)" stroke="#1e293b" stroke-width="3"/>
+                <rect x="295" y="122" width="40" height="20" rx="4" fill="#0f172a" stroke="#ff2200" stroke-width="2"/>
+                <ellipse cx="305" cy="132" rx="4" ry="7" fill="#ff3300"/>
+                <ellipse cx="317" cy="132" rx="4" ry="7" fill="#ff3300"/>
+                <ellipse cx="329" cy="132" rx="4" ry="7" fill="#ff3300"/>
+                <circle cx="280" cy="165" r="9" fill="#0f172a" stroke="url(#chromeGrad)" stroke-width="3"/>
+                <circle cx="280" cy="188" r="14" fill="#0f172a" stroke="url(#chromeGrad)" stroke-width="3"/>
+                <line x1="272" y1="165" x2="267" y2="188" stroke="#000" stroke-width="4"/>
+                <line x1="288" y1="165" x2="293" y2="188" stroke="#000" stroke-width="4"/>
+              </g>
+
+              <g class="decals">
+                <path d="M 230,225 L 340,210 L 480,215 L 610,195 L 560,230 L 420,235 Z" fill="#ff5500" opacity="0.85"/>
+                <path d="M 280,220 L 380,212 L 460,214 L 540,202 L 500,225 Z" fill="#ffdd00" opacity="0.9"/>
+                <g transform="translate(440, 235) scale(-1, 1)">
+                  <text x="0" y="0" text-anchor="middle" font-family="'Orbitron', sans-serif" font-weight="900" font-size="28" fill="#ffffff" font-style="italic" letter-spacing="2">66</text>
+                </g>
+                <g transform="translate(350, 235) scale(-1, 1)">
+                  <text x="0" y="0" text-anchor="middle" font-family="'Orbitron', sans-serif" font-weight="800" font-size="13" fill="#0f172a" font-style="italic">BEAST</text>
+                </g>
+              </g>
+
+              <path class="windshield" d="
+                M 320, 170
+                L 380, 108
+                L 440, 108
+                L 440, 170
+                Z
+              " fill="url(#windowTint)" stroke="#0f172a" stroke-width="3"/>
+
+              <path class="side-window" d="
+                M 452, 110
+                L 505, 110
+                L 540, 165
+                L 452, 168
+                Z
+              " fill="url(#windowTint)" stroke="#0f172a" stroke-width="3"/>
+
+              <polygon points="315,168 375,108 395,108 335,168" fill="#ffffff" opacity="0.25"/>
+
+              <circle cx="475" cy="138" r="14" fill="#090d16"/>
+              <rect x="466" y="134" width="10" height="5" rx="2" fill="#00f3ff"/>
+
+              <rect x="365" y="96" width="145" height="10" rx="3" fill="#0f172a" stroke="#475569" stroke-width="2"/>
+              <circle cx="380" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+              <circle cx="400" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+              <circle cx="420" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+              <circle cx="440" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+              <circle cx="460" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+              <circle cx="480" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+              <circle cx="500" cy="101" r="3" fill="#00f3ff" class="roof-led"/>
+
+              <g class="rear-spoiler">
+                <line x1="600" y1="160" x2="630" y2="95" stroke="url(#chromeGrad)" stroke-width="6" stroke-linecap="round"/>
+                <line x1="625" y1="160" x2="645" y2="95" stroke="url(#chromeGrad)" stroke-width="6" stroke-linecap="round"/>
+                <path d="M 590,92 L 670,82 L 672,96 L 592,106 Z" fill="#0f172a" stroke="#ff4800" stroke-width="3"/>
+                <polygon points="665,72 682,70 678,112 660,110" fill="#ff4800"/>
+              </g>
+
+              <g class="front-bumper">
+                <path d="M 155,230 L 175,225 L 180,265 L 150,260 Z" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+                <path d="M 175,225 L 140,200 L 135,240 L 165,260" fill="none" stroke="url(#cageGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="150" y="235" width="18" height="14" rx="3" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5"/>
+                <line x1="148" y1="242" x2="140" y2="242" stroke="#ffcc00" stroke-width="3"/>
+              </g>
+
+              <g class="headlights" id="truckHeadlightUnit">
+                <polygon points="168,205 195,198 190,225 165,222" fill="#0284c7" stroke="#ffffff" stroke-width="2"/>
+                <ellipse cx="178" cy="212" rx="7" ry="6" fill="url(#xenonBulb)" filter="url(#brakeGlow)"/>
+                <ellipse cx="178" cy="212" rx="3" ry="2.5" fill="#ffffff"/>
+              </g>
+
+              <rect x="668" y="195" width="7" height="28" rx="2" fill="#ff0044" filter="url(#brakeGlow)" id="taillightBar"/>
+            </g>
+
+            <!-- TIRE WHEELS -->
+            <g class="wheel-group wheel-rear-front" id="wheelRearFront" transform="translate(565, 410)">
+              <circle r="105" fill="url(#rubberTire)" stroke="#090a0d" stroke-width="4"/>
+              <g class="tire-treads" stroke="#333c4a" stroke-width="14" stroke-linecap="round">
+                <path d="M -96,-38 L -72,-16 L -96,6" />
+                <path d="M -72,32 L -48,54 L -72,76" />
+                <path d="M -12,82 L 16,98 L -12,104" />
+                <path d="M 44,82 L 72,66 L 94,82" />
+                <path d="M 82,12 L 98,-16 L 82,-38" />
+                <path d="M 50,-72 L 72,-94 L 50,-104" />
+                <path d="M -22,-94 L -44,-76 L -72,-94" />
+              </g>
+              <circle r="82" fill="none" stroke="#232832" stroke-width="22" stroke-dasharray="14,10"/>
+              <circle r="52" fill="#1e293b" stroke="#64748b" stroke-width="3" id="brakeDiscRear"/>
+              <circle r="42" fill="none" stroke="#0f172a" stroke-width="4" stroke-dasharray="6,8"/>
+              <path d="M -40,-35 Q -54,-10 -40,15 L -26,10 Q -38,-10 -26,-30 Z" fill="#ff1e00" stroke="#b91c1c" stroke-width="2"/>
+              <circle r="58" fill="url(#rimGrad)" stroke="#ff4d00" stroke-width="5"/>
+              <circle r="54" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="2,11.5"/>
+              <circle r="26" fill="#0f172a" stroke="#64748b" stroke-width="4"/>
+              <circle r="18" fill="none" stroke="#f8fafc" stroke-width="3" stroke-dasharray="2,9"/>
+              <circle r="10" fill="#334155" stroke="#ff5500" stroke-width="2"/>
+            </g>
+
+            <g class="wheel-group wheel-front-front" id="wheelFrontFront" transform="translate(285, 410)">
+              <circle r="105" fill="url(#rubberTire)" stroke="#090a0d" stroke-width="4"/>
+              <g class="tire-treads" stroke="#333c4a" stroke-width="14" stroke-linecap="round">
+                <path d="M -96,-38 L -72,-16 L -96,6" />
+                <path d="M -72,32 L -48,54 L -72,76" />
+                <path d="M -12,82 L 16,98 L -12,104" />
+                <path d="M 44,82 L 72,66 L 94,82" />
+                <path d="M 82,12 L 98,-16 L 82,-38" />
+                <path d="M 50,-72 L 72,-94 L 50,-104" />
+                <path d="M -22,-94 L -44,-76 L -72,-94" />
+              </g>
+              <circle r="82" fill="none" stroke="#232832" stroke-width="22" stroke-dasharray="14,10"/>
+              <circle r="52" fill="#1e293b" stroke="#64748b" stroke-width="3" id="brakeDiscFront"/>
+              <circle r="42" fill="none" stroke="#0f172a" stroke-width="4" stroke-dasharray="6,8"/>
+              <path d="M -40,-35 Q -54,-10 -40,15 L -26,10 Q -38,-10 -26,-30 Z" fill="#ff1e00" stroke="#b91c1c" stroke-width="2"/>
+              <circle r="58" fill="url(#rimGrad)" stroke="#ff4d00" stroke-width="5"/>
+              <circle r="54" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-dasharray="2,11.5"/>
+              <circle r="26" fill="#0f172a" stroke="#64748b" stroke-width="4"/>
+              <circle r="18" fill="none" stroke="#f8fafc" stroke-width="3" stroke-dasharray="2,9"/>
+              <circle r="10" fill="#334155" stroke="#ff5500" stroke-width="2"/>
+            </g>
+          </g>
+        </svg>
+
+        <div class="exhaust-flame-container" id="exhaustFlame">
+          <div class="flame-core"></div>
+          <div class="flame-outer"></div>
+          <div class="nitro-particles" id="nitroParticles"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COCKPIT CONTROLS FOOTER (PEDALS & BUTTONS, CLEAR CENTER) -->
+    <footer class="cockpit-overlay">
+      <div class="hud-quadrant quadrant-left">
+        <div class="pedal-wrapper">
+          <button class="pedal-btn brake-pedal" id="brakePedal" title="Hold [S] or [Down Arrow] to Brake">
+            <div class="pedal-grip"><span></span><span></span><span></span><span></span></div>
+            <div class="pedal-label">BRAKE</div>
+            <div class="pedal-key-hint">HOLD [S / ↓]</div>
+          </button>
+        </div>
+
+        <div class="tool-controls">
+          <button class="action-card" id="jumpBtn" title="Trigger Hydraulics Hop [SPACE]">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+            </div>
+            <div class="action-info">
+              <span class="action-title">HYDRAULIC HOP</span>
+              <span class="action-sub">BOUNCE [SPACE]</span>
+            </div>
+          </button>
+
+          <button class="action-card" id="lightsToggleBtn" title="Cycle Headlights [L]">
+            <div class="action-icon">
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </div>
+            <div class="action-info">
+              <span class="action-title">XENON BEAM</span>
+              <span class="action-sub" id="lightsStatusLabel">HIGH BEAM</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="hud-quadrant quadrant-center">
+        <div class="control-toast">
+          <span>GOAL:</span>
+          Crush Scrap Cars 🚗 &bull; Avoid Barrels 🛢️ &bull; Grab Fuel ⛽ &bull; Keep Speed High!
+        </div>
+      </div>
+
+      <div class="hud-quadrant quadrant-right">
+        <div class="boost-module">
+          <button class="nitro-card" id="nitroBtn" title="Hold [SHIFT] for NOS Turbo Boost">
+            <div class="nitro-glow"></div>
+            <div class="nitro-header">
+              <span class="nitro-tag">SYSTEM NOS</span>
+              <span class="nitro-pct" id="nitroLevel">100%</span>
+            </div>
+            <div class="nitro-progress">
+              <div class="nitro-fill" id="nitroBar"></div>
+            </div>
+            <div class="nitro-btn-body">
+              <svg viewBox="0 0 24 24" class="flame-icon"><path fill="currentColor" d="M17.5 12a5.5 5.5 0 1 1-11 0c0-1.68.74-3.23 2-4.25C8.85 6.7 9.5 5.4 9.5 4c0-.55-.45-1-1-1-.2 0-.39.06-.55.17C5.8 4.6 4 7.6 4 11a8 8 0 0 0 16 0c0-2.4-.9-4.7-2.5-6.4-.3-.3-.8-.3-1.1 0-.3.3-.3.8 0 1.1 1.3 1.4 2.1 3.3 2.1 5.3z"/></svg>
+              <span>NITRO BOOST</span>
+            </div>
+            <div class="pedal-key-hint">[HOLD SHIFT]</div>
+          </button>
+        </div>
+
+        <div class="pedal-wrapper">
+          <button class="pedal-btn gas-pedal" id="gasPedal" title="Hold [W] or [Up Arrow] to Accelerate">
+            <div class="pedal-grip"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="pedal-label">THROTTLE</div>
+            <div class="pedal-key-hint">HOLD [W / ↑]</div>
+          </button>
+        </div>
+      </div>
+    </footer>
+
+    <!-- GAME OVER / MISSION REPORT MODAL -->
+    <div class="game-over-modal" id="gameOverModal">
+      <div class="modal-card">
+        <div class="modal-badge" id="modalBadge">MISSION FAILED</div>
+        <h2 class="modal-title" id="modalTitle">OUT OF FUEL</h2>
+        
+        <div class="modal-stats">
+          <div class="stat-box">
+            <span class="s-label">FINAL SCORE</span>
+            <span class="s-val" id="finalScore">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="s-label">DISTANCE</span>
+            <span class="s-val" id="finalDist">0m</span>
+          </div>
+          <div class="stat-box">
+            <span class="s-label">CARS CRUSHED</span>
+            <span class="s-val" id="finalCrushed">0</span>
+          </div>
+          <div class="stat-box high-box">
+            <span class="s-label">BEST RECORD</span>
+            <span class="s-val" id="highScoreVal">0</span>
+          </div>
+        </div>
+
+        <button class="restart-btn" id="restartBtn">
+          <span>DEPLOY NEW TRUCK</span>
+          <kbd>[ENTER / SPACE]</kbd>
+        </button>
+      </div>
+    </div>
+  </div>
 </Layout>
+
+<style>
+  /* ======================================================== */
+  /* ROOT CONTAINER & LAYOUT                                  */
+  /* ======================================================== */
+  .simulation-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #020617;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TOP STATUS BAR */
+  .top-nav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    padding: 14px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(2,6,23,0.95) 0%, rgba(2,6,23,0) 100%);
+    pointer-events: none;
+  }
+  .top-nav > * {
+    pointer-events: auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .brand-badge {
+    background: var(--accent-orange);
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 1.5px;
+  }
+  .brand h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+  }
+  .brand h1 span {
+    color: var(--primary-neon);
+    text-shadow: 0 0 12px rgba(0,243,255,0.6);
+  }
+
+  /* SURVIVAL TELEMETRY HUD (HEALTH, FUEL, SCORE) */
+  .survival-hud {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .hud-meter-card {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 6px 14px;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    backdrop-filter: blur(8px);
+  }
+  .meter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .meter-icon { font-size: 11px; margin-right: 4px; }
+  .meter-label { color: #94a3b8; letter-spacing: 1px; }
+  .meter-value {
+    font-family: 'Orbitron', monospace;
+    font-weight: 800;
+    color: #fff;
+  }
+  .meter-track {
+    width: 100%;
+    height: 7px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 999px;
+    transition: width 0.15s ease, background 0.3s ease;
+  }
+  .fill-health {
+    background: linear-gradient(90deg, #ef4444, #22c55e);
+    box-shadow: 0 0 8px rgba(34,197,94,0.6);
+  }
+  .fill-fuel {
+    background: linear-gradient(90deg, #f59e0b, #00f3ff);
+    box-shadow: 0 0 8px rgba(0,243,255,0.6);
+  }
+
+  .score-card {
+    display: flex;
+    gap: 10px;
+  }
+  .score-pill {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(0,243,255,0.25);
+    border-radius: 8px;
+    padding: 6px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 65px;
+  }
+  .score-pill .label {
+    font-size: 8px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+  .score-pill .val {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .val-crush {
+    color: var(--accent-orange) !important;
+  }
+
+  .top-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .icon-btn {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(0,243,255,0.25);
+    border-radius: 8px;
+    color: #94a3b8;
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .icon-btn .icon { width: 15px; height: 15px; }
+  .icon-btn:hover {
+    color: var(--primary-neon);
+    border-color: var(--primary-neon);
+    box-shadow: 0 0 16px rgba(0,243,255,0.25);
+  }
+
+  /* CORNER SPEEDOMETER HUD */
+  .corner-hud-cluster {
+    position: absolute;
+    top: 76px;
+    right: 28px;
+    z-index: 120;
+    pointer-events: none;
+  }
+  .cluster-gauge {
+    position: relative;
+    width: 220px;
+    height: 185px;
+    background: rgba(10, 15, 29, 0.82);
+    border: 1px solid rgba(0, 243, 255, 0.35);
+    border-radius: 18px;
+    backdrop-filter: blur(14px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 20px rgba(0,243,255,0.2);
+    overflow: hidden;
+  }
+  .gauge-svg { width: 200px; height: 135px; margin-top: 6px; }
+  .gauge-center-content {
+    position: absolute;
+    top: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .digital-speed {
+    font-family: 'Orbitron', monospace;
+    font-size: 38px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
+    text-shadow: 0 0 16px rgba(0,243,255,0.6);
+  }
+  .speed-unit {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    color: var(--primary-neon);
+    margin-top: 3px;
+  }
+  .gear-badge {
+    margin-top: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    background: rgba(0,243,255,0.15);
+    border: 1px solid var(--primary-neon);
+    color: #fff;
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 8px rgba(0,243,255,0.4);
+  }
+  .rpm-strip {
+    position: absolute;
+    bottom: 10px;
+    width: 85%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rpm-label {
+    font-size: 8px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 1px;
+  }
+  .rpm-bar-track {
+    flex: 1;
+    height: 5px;
+    background: #0f172a;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .rpm-bar-fill {
+    width: 15%;
+    height: 100%;
+    background: linear-gradient(90deg, #00f3ff, #a3e635, #ff0055);
+    transition: width 0.05s linear;
+  }
+  .rpm-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    color: #94a3b8;
+    width: 34px;
+    text-align: right;
+  }
+
+  /* VIEWPORT */
+  .viewport {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .sky-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0f172a 45%, #020617 85%);
+    z-index: 0;
+  }
+  .stars-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  :global(.sky-star) {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 4px #fff;
+    opacity: 0.6;
+    animation: starPulse 2.5s infinite alternate;
+  }
+  @keyframes starPulse {
+    from { opacity: 0.2; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1.3); }
+  }
+
+  .city-skyline {
+    position: absolute;
+    bottom: 240px;
+    left: 0;
+    width: 300%;
+    height: 220px;
+    z-index: 2;
+    background-repeat: repeat-x;
+    background-position: bottom left;
+    background-size: 1200px 220px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 220' preserveAspectRatio='none'%3E%3Cpath d='M0,220 L0,140 L40,140 L40,90 L70,90 L70,220 L110,220 L110,120 L160,120 L160,50 L200,50 L200,220 L240,220 L240,160 L300,160 L300,30 L320,10 L340,30 L340,220 L400,220 L400,100 L450,100 L450,220 L520,220 L520,80 L580,80 L580,220 L640,220 L640,40 L690,40 L690,220 L760,220 L760,130 L820,130 L820,220 L890,220 L890,60 L940,60 L940,220 L1020,220 L1020,110 L1080,110 L1080,220 L1140,220 L1140,70 L1200,70 L1200,220 Z' fill='%23080e1e'/%3E%3Cpath d='M175,70 L185,70 M175,85 L185,85 M175,100 L185,100 M315,50 L325,50 M315,70 L325,70 M315,90 L325,90 M660,60 L670,60 M660,80 L670,80 M910,80 L920,80 M910,100 L920,100' stroke='%2300f3ff' stroke-width='2' opacity='0.7'/%3E%3C/svg%3E");
+    opacity: 0.85;
+  }
+
+  .midground-layer {
+    position: absolute;
+    bottom: 210px;
+    left: 0;
+    width: 300%;
+    height: 110px;
+    z-index: 3;
+    background-repeat: repeat-x;
+    background-size: 800px 110px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 110' preserveAspectRatio='none'%3E%3Cpath d='M0,110 Q200,40 400,80 T800,70 L800,110 Z' fill='%230b1329'/%3E%3Cpath d='M0,60 Q200,10 400,40 T800,30' fill='none' stroke='%23a855f7' stroke-width='2' opacity='0.4'/%3E%3C/svg%3E");
+  }
+
+  .speed-lines { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  :global(.speed-streak) {
+    position: absolute;
+    height: 1.5px;
+    background: linear-gradient(90deg, transparent, rgba(0,243,255,0.8), #ffffff);
+    border-radius: 999px;
+  }
+
+  .ground-complex {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 230px;
+    z-index: 5;
+    background: linear-gradient(180deg, #090d16 0%, #030712 100%);
+    border-top: 3px solid rgba(0,243,255,0.4);
+    box-shadow: 0 -10px 40px rgba(0,243,255,0.25);
+    overflow: hidden;
+  }
+  .road-surface { position: absolute; inset: 0; }
+  .road-lanes {
+    position: absolute;
+    top: 55%;
+    left: 0;
+    width: 400%;
+    height: 8px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 70px,
+      #00f3ff 70px,
+      #00f3ff 140px
+    );
+    filter: drop-shadow(0 0 8px #00f3ff);
+    opacity: 0.9;
+  }
+  .road-grid {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,0.02) 0px,
+      rgba(255,255,255,0.02) 40px,
+      rgba(0,243,255,0.04) 40px,
+      rgba(0,243,255,0.04) 42px
+    );
+  }
+  .curb-neon-left { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #00f3ff; box-shadow: 0 0 15px #00f3ff; }
+  .curb-neon-right { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: #ff5500; box-shadow: 0 0 10px #ff5500; }
+
+  /* ======================================================== */
+  /* OBSTACLES & DYNAMIC PROPS LAYER                          */
+  /* ======================================================== */
+  .obstacles-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 9;
+    pointer-events: none;
+  }
+
+  /* CRUSHABLE SCRAP CAR */
+  :global(.scrap-car) {
+    position: absolute;
+    width: 140px;
+    height: 52px;
+    bottom: 95px;
+    pointer-events: none;
+    transform-origin: center bottom;
+    transition: height 0.08s ease, transform 0.08s ease;
+  }
+  :global(.scrap-car.crushed) {
+    height: 18px !important;
+    filter: brightness(0.7) contrast(1.4);
+  }
+
+  /* EXPLOSIVE BARREL */
+  :global(.hazard-barrel) {
+    position: absolute;
+    width: 38px;
+    height: 54px;
+    bottom: 95px;
+    pointer-events: none;
+    background: linear-gradient(90deg, #b91c1c 0%, #ef4444 50%, #7f1d1d 100%);
+    border-radius: 5px;
+    border: 2px solid #ff4400;
+    box-shadow: 0 0 15px rgba(239,68,68,0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+  }
+  :global(.hazard-barrel .barrel-rib) {
+    width: 100%;
+    height: 3px;
+    background: #000;
+  }
+  :global(.hazard-barrel .hazard-symbol) {
+    font-size: 14px;
+  }
+
+  /* COLLECTIBLE FUEL CAN */
+  :global(.fuel-can) {
+    position: absolute;
+    width: 36px;
+    height: 44px;
+    bottom: 120px;
+    pointer-events: none;
+    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    border: 2px solid #86efac;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(34,197,94,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    animation: fuelBob 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes fuelBob {
+    from { transform: translateY(0px) rotate(-4deg); }
+    to { transform: translateY(-12px) rotate(4deg); }
+  }
+
+  /* FLOATING POPUP TEXTS */
+  .popups-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    pointer-events: none;
+  }
+  :global(.float-popup) {
+    position: absolute;
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    pointer-events: none;
+    animation: floatUpFade 0.9s ease-out forwards;
+    white-space: nowrap;
+  }
+  @keyframes floatUpFade {
+    0% { transform: translateY(0) scale(0.8); opacity: 1; }
+    50% { transform: translateY(-30px) scale(1.15); opacity: 1; }
+    100% { transform: translateY(-65px) scale(1); opacity: 0; }
+  }
+  :global(.pop-crush) { color: #f59e0b; text-shadow: 0 0 14px #f59e0b; }
+  :global(.pop-fuel) { color: #22c55e; text-shadow: 0 0 14px #22c55e; }
+  :global(.pop-damage) { color: #ef4444; text-shadow: 0 0 14px #ef4444; }
+
+  /* HEADLIGHT CONE */
+  .headlight-volumetric {
+    position: absolute;
+    bottom: 140px;
+    left: calc(50% + 150px);
+    width: 750px;
+    height: 190px;
+    z-index: 7;
+    pointer-events: none;
+    transform-origin: left center;
+  }
+  .beam-glow {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(200,245,255,0.85) 0%, rgba(56,189,248,0.3) 40%, rgba(2,132,199,0) 100%);
+    clip-path: polygon(0% 48%, 100% 0%, 100% 100%, 0% 58%);
+    filter: blur(4px);
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+  }
+
+  /* SMOKE */
+  .tire-smoke-layer { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+  :global(.smoke-puff) {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,240,250,0.8) 0%, rgba(100,120,160,0.3) 60%, transparent 80%);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  /* TRUCK ASSEMBLY */
+  .truck-assembly {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 780px;
+    height: 520px;
+    z-index: 10;
+    pointer-events: none;
+    transform-origin: center bottom;
+    transition: transform 0.08s ease-out;
+  }
+  .truck-svg { width: 100%; height: 100%; overflow: visible; }
+  .wheel-group { transform-origin: 0 0; }
+
+  .exhaust-flame-container {
+    position: absolute;
+    top: 205px;
+    left: 70px;
+    width: 120px;
+    height: 45px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transform-origin: right center;
+    transform: scaleX(-1);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  .flame-core {
+    width: 80px;
+    height: 22px;
+    background: linear-gradient(90deg, #ffffff 0%, #00f3ff 40%, #a855f7 85%, transparent 100%);
+    border-radius: 50% 10px 10px 50%;
+    filter: blur(1.5px);
+    box-shadow: 0 0 20px #00f3ff;
+  }
+  .flame-outer {
+    position: absolute;
+    left: -5px;
+    width: 110px;
+    height: 38px;
+    background: linear-gradient(90deg, #00f3ff 0%, #a855f7 60%, transparent 100%);
+    border-radius: 50% 15px 15px 50%;
+    filter: blur(5px);
+    opacity: 0.85;
+  }
+
+  /* COCKPIT OVERLAY */
+  .cockpit-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 150;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 16px 36px;
+    background: linear-gradient(0deg, rgba(3,7,18,0.95) 0%, rgba(3,7,18,0.6) 50%, transparent 100%);
+    pointer-events: none;
+  }
+  .cockpit-overlay > * { pointer-events: auto; }
+
+  .hud-quadrant { display: flex; align-items: flex-end; gap: 20px; }
+  .quadrant-center { flex: 1; display: flex; justify-content: center; padding-bottom: 8px; pointer-events: none; }
+
+  .pedal-wrapper { display: flex; flex-direction: column; align-items: center; }
+  .pedal-btn {
+    position: relative;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 18px 12px 14px;
+    border-radius: 12px;
+    transition: transform 0.08s ease, filter 0.1s ease, box-shadow 0.1s ease;
+    user-select: none;
+    outline: none;
+  }
+  .brake-pedal {
+    width: 115px;
+    height: 135px;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 70%, #020617 100%);
+    border: 2px solid #ef4444;
+    box-shadow: 0 10px 25px rgba(239,68,68,0.3), inset 0 2px 4px rgba(255,255,255,0.2);
+  }
+  .brake-pedal:active, .brake-pedal.pedal-active {
+    transform: translateY(12px) scale(0.96);
+    background: linear-gradient(180deg, #991b1b 0%, #450a0a 100%);
+    box-shadow: 0 0 35px rgba(239,68,68,0.8);
+  }
+  .gas-pedal {
+    width: 85px;
+    height: 155px;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 70%, #020617 100%);
+    border: 2px solid var(--accent-lime);
+    box-shadow: 0 10px 25px rgba(180,255,0,0.25), inset 0 2px 4px rgba(255,255,255,0.2);
+  }
+  .gas-pedal:active, .gas-pedal.pedal-active {
+    transform: translateY(14px) scale(0.96);
+    background: linear-gradient(180deg, #365314 0%, #1a2e05 100%);
+    box-shadow: 0 0 35px rgba(180,255,0,0.8);
+  }
+  .pedal-grip { display: flex; flex-direction: column; gap: 8px; width: 80%; margin-bottom: 12px; }
+  .pedal-grip span { display: block; height: 4px; background: rgba(255,255,255,0.18); border-radius: 2px; }
+  .pedal-label { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900; letter-spacing: 2px; color: #fff; }
+  .brake-pedal .pedal-label { color: #fca5a5; }
+  .gas-pedal .pedal-label { color: #d9f99d; }
+  .pedal-key-hint { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #94a3b8; margin-top: 4px; }
+
+  .tool-controls { display: flex; flex-direction: column; gap: 10px; }
+  .action-card {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .action-card:hover { border-color: var(--primary-neon); background: rgba(30,41,59,0.95); transform: translateY(-2px); }
+  .action-card:active { transform: translateY(2px); }
+  .action-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(0,243,255,0.15);
+    color: var(--primary-neon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .action-icon svg { width: 18px; height: 18px; }
+  .action-info { display: flex; flex-direction: column; text-align: left; }
+  .action-title { font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #f1f5f9; }
+  .action-sub { font-size: 9px; font-weight: 600; color: #94a3b8; }
+
+  .boost-module { display: flex; flex-direction: column; }
+  .nitro-card {
+    position: relative;
+    width: 135px;
+    background: linear-gradient(135deg, rgba(88,28,135,0.9) 0%, rgba(15,23,42,0.95) 100%);
+    border: 2px solid #a855f7;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(168,85,247,0.3);
+    transition: all 0.15s ease;
+  }
+  .nitro-card:hover { box-shadow: 0 0 30px rgba(168,85,247,0.6); }
+  .nitro-card.nitro-active {
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    box-shadow: 0 0 45px rgba(168,85,247,0.9);
+    transform: translateY(4px) scale(0.97);
+  }
+  .nitro-header { display: flex; justify-content: space-between; align-items: center; }
+  .nitro-tag { font-family: 'Orbitron', monospace; font-size: 9px; font-weight: 800; color: #d8b4fe; }
+  .nitro-pct { font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 800; color: #fff; }
+  .nitro-progress { width: 100%; height: 6px; background: rgba(0,0,0,0.5); border-radius: 999px; overflow: hidden; }
+  .nitro-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #a855f7, #00f3ff); }
+  .nitro-btn-body { display: flex; align-items: center; justify-content: center; gap: 6px; color: #fff; font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 900; }
+  .flame-icon { width: 16px; height: 16px; color: #00f3ff; }
+
+  .control-toast {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border-radius: 999px;
+    padding: 6px 18px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .control-toast span { color: var(--primary-neon); font-weight: 700; }
+
+  /* GAME OVER MODAL */
+  .game-over-modal {
+    position: absolute;
+    inset: 0;
+    z-index: 500;
+    background: rgba(3,7,18,0.88);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .game-over-modal.modal-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-card {
+    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+    border: 2px solid var(--accent-orange);
+    border-radius: 20px;
+    padding: 36px 44px;
+    width: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 0 50px rgba(255,119,0,0.4);
+    animation: modalPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  @keyframes modalPop {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal-badge {
+    background: #ef4444;
+    color: #fff;
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 4px 12px;
+    border-radius: 4px;
+  }
+  .modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    margin: 12px 0 24px;
+    text-shadow: 0 0 20px rgba(255,255,255,0.4);
+  }
+  .modal-stats {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  .stat-box {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .stat-box .s-label { font-size: 9px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; }
+  .stat-box .s-val { font-family: 'Orbitron', monospace; font-size: 18px; font-weight: 900; color: #fff; margin-top: 2px; }
+  .high-box {
+    border-color: var(--accent-orange) !important;
+    background: rgba(255,119,0,0.1) !important;
+  }
+  .high-box .s-val { color: var(--accent-orange) !important; }
+
+  .restart-btn {
+    width: 100%;
+    background: linear-gradient(90deg, #ff7700, #ff4400);
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    color: #fff;
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    cursor: pointer;
+    box-shadow: 0 0 25px rgba(255,119,0,0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .restart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 35px rgba(255,119,0,0.9);
+  }
+  .restart-btn kbd {
+    font-size: 10px;
+    color: #ffe0cc;
+  }
+
+  @media (max-width: 900px) {
+    .corner-hud-cluster { top: 65px; right: 15px; }
+    .cluster-gauge { width: 175px; height: 145px; }
+    .gauge-svg { width: 160px; height: 110px; }
+    .digital-speed { font-size: 28px; }
+    .truck-assembly { width: 560px; height: 380px; bottom: 85px; }
+    .survival-hud { display: none; }
+    .cockpit-overlay { padding: 10px 15px; }
+    .brake-pedal { width: 85px; height: 115px; }
+    .gas-pedal { width: 68px; height: 135px; }
+    .nitro-card { width: 110px; padding: 8px; }
+    .control-toast { display: none; }
+  }
+</style>
+
+<script>
+  // ==========================================================
+  // GAME & VEHICLE RIGGING ENGINE WITH OBSTACLES & SURVIVAL
+  // ==========================================================
+
+  const state = {
+    speed: 0,
+    targetSpeed: 0,
+    rpm: 850,
+    gear: 'P',
+    isAccelerating: false,
+    isBraking: false,
+    isBoosting: false,
+    nitroLeft: 100,
+    jumpPhase: 0,
+    isJumping: false,
+    lightingMode: 2,
+    soundEnabled: true,
+    wheelAngle: 0,
+    pitchAngle: 0,
+    // SURVIVAL & GAMEPLAY STATS
+    health: 100,
+    fuel: 100,
+    score: 0,
+    distance: 0,
+    carsCrushed: 0,
+    isGameOver: false,
+    climbBumpY: 0,
+    highScore: parseInt(localStorage.getItem('snx_beast_high_score') || '0', 10)
+  };
+
+  // DOM Elements
+  const speedDigit = document.getElementById('speedDigit')!;
+  const speedNeedle = document.getElementById('speedNeedle')!;
+  const gaugeSpeedArc = document.getElementById('gaugeSpeedArc')!;
+  const gearIndicator = document.getElementById('gearIndicator')!;
+  const rpmBar = document.getElementById('rpmBar')!;
+  const rpmVal = document.getElementById('rpmVal')!;
+  const nitroBar = document.getElementById('nitroBar')!;
+  const nitroLevel = document.getElementById('nitroLevel')!;
+  const nitroBtn = document.getElementById('nitroBtn')!;
+  const gasPedal = document.getElementById('gasPedal')!;
+  const brakePedal = document.getElementById('brakePedal')!;
+  const jumpBtn = document.getElementById('jumpBtn')!;
+  const lightsToggleBtn = document.getElementById('lightsToggleBtn')!;
+  const lightsModeText = document.getElementById('lightingModeText')!;
+  const lightsStatusLabel = document.getElementById('lightsStatusLabel')!;
+  const headlightCone = document.getElementById('headlightCone')!;
+  const soundBtn = document.getElementById('soundBtn')!;
+  const soundText = soundBtn.querySelector('.sound-text')!;
+  const truckAssembly = document.getElementById('truckAssembly')!;
+  const exhaustFlame = document.getElementById('exhaustFlame')!;
+  const brakeDiscFront = document.getElementById('brakeDiscFront')!;
+  const brakeDiscRear = document.getElementById('brakeDiscRear')!;
+  const tireSmokeLayer = document.getElementById('tireSmokeLayer')!;
+  const roadLanes = document.getElementById('roadLanes')!;
+  const citySkyline = document.getElementById('citySkyline')!;
+  const midgroundLayer = document.getElementById('midgroundLayer')!;
+  const obstaclesLayer = document.getElementById('obstaclesLayer')!;
+  const popupsLayer = document.getElementById('popupsLayer')!;
+
+  // Survival HUD DOM
+  const healthBar = document.getElementById('healthBar')!;
+  const healthVal = document.getElementById('healthVal')!;
+  const fuelBar = document.getElementById('fuelBar')!;
+  const fuelVal = document.getElementById('fuelVal')!;
+  const scoreDisplay = document.getElementById('scoreDisplay')!;
+  const distDisplay = document.getElementById('distDisplay')!;
+  const crushDisplay = document.getElementById('crushDisplay')!;
+
+  // Game Over Modal DOM
+  const gameOverModal = document.getElementById('gameOverModal')!;
+  const modalTitle = document.getElementById('modalTitle')!;
+  const finalScore = document.getElementById('finalScore')!;
+  const finalDist = document.getElementById('finalDist')!;
+  const finalCrushed = document.getElementById('finalCrushed')!;
+  const highScoreVal = document.getElementById('highScoreVal')!;
+  const restartBtn = document.getElementById('restartBtn')!;
+
+  // Wheel Elements
+  const wf = document.getElementById('wheelFrontFront');
+  const wr = document.getElementById('wheelRearFront');
+  const wfb = document.getElementById('wheelFrontBack');
+  const wrb = document.getElementById('wheelRearBack');
+
+  // ==========================================================
+  // PROCEDURAL WEB AUDIO SYNTHESIZER (ENGINE + CRUNCH + EXPLOSION + CHIME)
+  // ==========================================================
+  let audioCtx: AudioContext | null = null;
+  let engineOsc1: OscillatorNode | null = null;
+  let engineOsc2: OscillatorNode | null = null;
+  let engineGain: GainNode | null = null;
+
+  function initAudio() {
+    if (audioCtx) return;
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      audioCtx = new AudioCtxClass();
+
+      engineGain = audioCtx.createGain();
+      engineGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      engineGain.connect(audioCtx.destination);
+
+      engineOsc1 = audioCtx.createOscillator();
+      engineOsc1.type = 'sawtooth';
+      engineOsc1.frequency.setValueAtTime(32, audioCtx.currentTime);
+
+      engineOsc2 = audioCtx.createOscillator();
+      engineOsc2.type = 'triangle';
+      engineOsc2.frequency.setValueAtTime(64, audioCtx.currentTime);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(380, audioCtx.currentTime);
+
+      engineOsc1.connect(filter);
+      engineOsc2.connect(filter);
+      filter.connect(engineGain);
+
+      engineOsc1.start();
+      engineOsc2.start();
+    } catch (e) {}
+  }
+
+  function updateAudioPitch() {
+    if (!audioCtx || !state.soundEnabled || !engineOsc1 || !engineOsc2 || !engineGain) return;
+    const baseFreq = 28 + (state.rpm / 8500) * 135;
+    engineOsc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.05);
+    engineOsc2.frequency.setTargetAtTime(baseFreq * 1.5, audioCtx.currentTime, 0.05);
+
+    const targetVol = state.isBoosting ? 0.28 : state.isAccelerating ? 0.22 : 0.09;
+    engineGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.05);
+  }
+
+  // SATISFYING METAL CRUNCH SOUND FOR CRUSHING CARS
+  function playMetalCrunch() {
+    if (!audioCtx || !state.soundEnabled) return;
+    try {
+      // Noise burst for crunch
+      const bufferSize = audioCtx.sampleRate * 0.35;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(750, audioCtx.currentTime);
+      filter.Q.setValueAtTime(3, audioCtx.currentTime);
+
+      const gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      noise.start();
+    } catch(e) {}
+  }
+
+  // EXPLOSION SOUND FOR HAZARD BARRELS
+  function playExplosion() {
+    if (!audioCtx || !state.soundEnabled) return;
+    try {
+      const boomOsc = audioCtx.createOscillator();
+      const boomGain = audioCtx.createGain();
+      boomOsc.type = 'sawtooth';
+      boomOsc.frequency.setValueAtTime(140, audioCtx.currentTime);
+      boomOsc.frequency.exponentialRampToValueAtTime(25, audioCtx.currentTime + 0.5);
+
+      boomGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      boomGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+      boomOsc.connect(boomGain);
+      boomGain.connect(audioCtx.destination);
+      boomOsc.start();
+      boomOsc.stop(audioCtx.currentTime + 0.5);
+    } catch(e) {}
+  }
+
+  // REWARD CHIME FOR FUEL CANISTER PICKUP
+  function playFuelPickup() {
+    if (!audioCtx || !state.soundEnabled) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08); // E5
+      osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.16); // G5
+      osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.24); // C6
+
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.45);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.45);
+    } catch(e) {}
+  }
+
+  function playBrakeScreech() {
+    if (!audioCtx || !state.soundEnabled || state.speed < 25) return;
+    try {
+      const screechOsc = audioCtx.createOscillator();
+      const screechGain = audioCtx.createGain();
+      screechOsc.type = 'sawtooth';
+      screechOsc.frequency.setValueAtTime(1400 + Math.random() * 300, audioCtx.currentTime);
+      screechGain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      screechGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+      screechOsc.connect(screechGain);
+      screechGain.connect(audioCtx.destination);
+      screechOsc.start();
+      screechOsc.stop(audioCtx.currentTime + 0.35);
+    } catch(e) {}
+  }
+
+  function playHydraulicBounceSound() {
+    if (!audioCtx || !state.soundEnabled) return;
+    try {
+      const hopOsc = audioCtx.createOscillator();
+      const hopGain = audioCtx.createGain();
+      hopOsc.type = 'sine';
+      hopOsc.frequency.setValueAtTime(180, audioCtx.currentTime);
+      hopOsc.frequency.exponentialRampToValueAtTime(45, audioCtx.currentTime + 0.3);
+      hopGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      hopGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      hopOsc.connect(hopGain);
+      hopGain.connect(audioCtx.destination);
+      hopOsc.start();
+      hopOsc.stop(audioCtx.currentTime + 0.3);
+    } catch(e) {}
+  }
+
+  // Stars
+  const starsContainer = document.getElementById('starsLayer')!;
+  for (let i = 0; i < 90; i++) {
+    const star = document.createElement('div');
+    star.className = 'sky-star';
+    const sz = 1 + Math.random() * 2.5;
+    star.style.width = sz + 'px';
+    star.style.height = sz + 'px';
+    star.style.left = (Math.random() * 100) + '%';
+    star.style.top = (Math.random() * 60) + '%';
+    star.style.animationDelay = (Math.random() * 3) + 's';
+    starsContainer.appendChild(star);
+  }
+
+  // ==========================================================
+  // FLOATING COMBAT TEXT HELPER
+  // ==========================================================
+  function showFloatingPopup(text: string, type: 'crush' | 'fuel' | 'damage', x: number, y: number) {
+    const pop = document.createElement('div');
+    pop.className = `float-popup pop-${type}`;
+    pop.textContent = text;
+    pop.style.left = x + 'px';
+    pop.style.top = y + 'px';
+    popupsLayer.appendChild(pop);
+    setTimeout(() => pop.remove(), 950);
+  }
+
+  // ==========================================================
+  // DYNAMIC OBSTACLE SPAWNER & MANAGEMENT
+  // ==========================================================
+  interface Obstacle {
+    id: number;
+    type: 'car' | 'barrel' | 'fuel';
+    x: number;
+    width: number;
+    height: number;
+    isCrushed?: boolean;
+    isCollected?: boolean;
+    element: HTMLElement;
+  }
+
+  let obstacles: Obstacle[] = [];
+  let obstacleIdCounter = 0;
+  let lastSpawnDistance = 0;
+
+  function spawnObstacle() {
+    if (state.speed < 5 || state.isGameOver) return;
+
+    // Pick a type: 55% crushable car, 25% hazard barrel, 20% fuel can
+    const r = Math.random();
+    let type: 'car' | 'barrel' | 'fuel' = 'car';
+    if (r > 0.80) type = 'fuel';
+    else if (r > 0.55) type = 'barrel';
+
+    const el = document.createElement('div');
+    const startX = window.innerWidth + 120;
+    let w = 140, h = 50;
+
+    if (type === 'car') {
+      el.className = 'scrap-car';
+      w = 140; h = 50;
+      // Procedural colorful scrap car body
+      const carColor = ['#ef4444', '#3b82f6', '#a855f7', '#eab308'][Math.floor(Math.random() * 4)];
+      el.innerHTML = `
+        <svg viewBox="0 0 140 50" style="width:100%;height:100%;overflow:visible;">
+          <!-- Car Body -->
+          <path d="M5,42 L135,42 L130,22 L100,20 L80,6 L35,6 L20,20 L5,24 Z" fill="${carColor}" stroke="#1e293b" stroke-width="2"/>
+          <!-- Windows -->
+          <polygon points="38,8 78,8 96,20 25,20" fill="#0f172a" opacity="0.85"/>
+          <!-- Wheels -->
+          <circle cx="28" cy="42" r="12" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+          <circle cx="112" cy="42" r="12" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+          <circle cx="28" cy="42" r="5" fill="#cbd5e1"/>
+          <circle cx="112" cy="42" r="5" fill="#cbd5e1"/>
+        </svg>
+      `;
+    } else if (type === 'barrel') {
+      el.className = 'hazard-barrel';
+      w = 38; h = 54;
+      el.innerHTML = `
+        <div class="barrel-rib"></div>
+        <span class="hazard-symbol">☣</span>
+        <div class="barrel-rib"></div>
+      `;
+    } else {
+      el.className = 'fuel-can';
+      w = 36; h = 44;
+      el.innerHTML = `⛽`;
+    }
+
+    el.style.left = startX + 'px';
+    obstaclesLayer.appendChild(el);
+
+    obstacles.push({
+      id: ++obstacleIdCounter,
+      type,
+      x: startX,
+      width: w,
+      height: h,
+      element: el
+    });
+  }
+
+  // ==========================================================
+  // INPUT CONTROLS
+  // ==========================================================
+  function setAccelerate(val: boolean) {
+    if (state.isGameOver) return;
+    initAudio();
+    state.isAccelerating = val;
+    gasPedal.classList.toggle('pedal-active', val);
+  }
+
+  function setBrake(val: boolean) {
+    if (state.isGameOver) return;
+    initAudio();
+    state.isBraking = val;
+    brakePedal.classList.toggle('pedal-active', val);
+    if (val && state.speed > 25) {
+      playBrakeScreech();
+    }
+  }
+
+  function setBoost(val: boolean) {
+    if (state.isGameOver) return;
+    initAudio();
+    if (val && state.nitroLeft > 5) {
+      state.isBoosting = true;
+      nitroBtn.classList.add('nitro-active');
+    } else {
+      state.isBoosting = false;
+      nitroBtn.classList.remove('nitro-active');
+    }
+  }
+
+  function triggerHydraulicJump() {
+    if (state.isGameOver) return;
+    initAudio();
+    if (state.isJumping) return;
+    state.isJumping = true;
+    state.jumpPhase = 0;
+    playHydraulicBounceSound();
+  }
+
+  function toggleLighting() {
+    state.lightingMode = (state.lightingMode + 1) % 3;
+    if (state.lightingMode === 0) {
+      lightsModeText.textContent = "LIGHTS: OFF";
+      lightsStatusLabel.textContent = "OFF";
+      headlightCone.style.opacity = '0';
+      document.querySelectorAll('.roof-led').forEach((el: any) => el.style.opacity = '0.1');
+    } else if (state.lightingMode === 1) {
+      lightsModeText.textContent = "LOW BEAM";
+      lightsStatusLabel.textContent = "LOW BEAM";
+      headlightCone.style.opacity = '0.45';
+      document.querySelectorAll('.roof-led').forEach((el: any) => el.style.opacity = '0.5');
+    } else {
+      lightsModeText.textContent = "NEON NIGHT";
+      lightsStatusLabel.textContent = "HIGH BEAM";
+      headlightCone.style.opacity = '1';
+      document.querySelectorAll('.roof-led').forEach((el: any) => el.style.opacity = '1');
+    }
+  }
+
+  // RESET & RESTART GAME FUNCTION
+  function restartGame() {
+    state.health = 100;
+    state.fuel = 100;
+    state.score = 0;
+    state.distance = 0;
+    state.carsCrushed = 0;
+    state.speed = 0;
+    state.isGameOver = false;
+    state.isAccelerating = false;
+    state.isBraking = false;
+    state.isBoosting = false;
+    state.climbBumpY = 0;
+
+    // Clear all obstacles
+    obstacles.forEach(o => o.element.remove());
+    obstacles = [];
+
+    // Reset HUD
+    gameOverModal.classList.remove('modal-open');
+    healthBar.style.width = '100%';
+    healthVal.textContent = '100%';
+    fuelBar.style.width = '100%';
+    fuelVal.textContent = '100%';
+    scoreDisplay.textContent = '0';
+    distDisplay.textContent = '0m';
+    crushDisplay.textContent = '0';
+  }
+
+  function triggerGameOver(reason: 'fuel' | 'wreck') {
+    state.isGameOver = true;
+    state.speed = 0;
+    state.isAccelerating = false;
+    state.isBoosting = false;
+    exhaustFlame.style.opacity = '0';
+
+    if (state.score > state.highScore) {
+      state.highScore = state.score;
+      localStorage.setItem('snx_beast_high_score', state.highScore.toString());
+    }
+
+    modalTitle.textContent = reason === 'fuel' ? 'OUT OF FUEL' : 'TRUCK DESTROYED';
+    finalScore.textContent = state.score.toLocaleString();
+    finalDist.textContent = Math.floor(state.distance) + 'm';
+    finalCrushed.textContent = state.carsCrushed.toString();
+    highScoreVal.textContent = state.highScore.toLocaleString();
+
+    gameOverModal.classList.add('modal-open');
+  }
+
+  gasPedal.addEventListener('mousedown', () => setAccelerate(true));
+  window.addEventListener('mouseup', () => {
+    setAccelerate(false);
+    setBrake(false);
+    setBoost(false);
+  });
+  gasPedal.addEventListener('touchstart', (e) => { e.preventDefault(); setAccelerate(true); });
+  gasPedal.addEventListener('touchend', (e) => { e.preventDefault(); setAccelerate(false); });
+
+  brakePedal.addEventListener('mousedown', () => setBrake(true));
+  brakePedal.addEventListener('touchstart', (e) => { e.preventDefault(); setBrake(true); });
+  brakePedal.addEventListener('touchend', (e) => { e.preventDefault(); setBrake(false); });
+
+  nitroBtn.addEventListener('mousedown', () => setBoost(true));
+  nitroBtn.addEventListener('touchstart', (e) => { e.preventDefault(); setBoost(true); });
+  nitroBtn.addEventListener('touchend', (e) => { e.preventDefault(); setBoost(false); });
+
+  jumpBtn.addEventListener('click', triggerHydraulicJump);
+  lightsToggleBtn.addEventListener('click', toggleLighting);
+  restartBtn.addEventListener('click', restartGame);
+
+  soundBtn.addEventListener('click', () => {
+    initAudio();
+    state.soundEnabled = !state.soundEnabled;
+    soundText.textContent = state.soundEnabled ? 'SOUND: ON' : 'SOUND: OFF';
+    if (!state.soundEnabled && engineGain && audioCtx) {
+      engineGain.gain.setValueAtTime(0, audioCtx.currentTime);
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    initAudio();
+    const key = e.key.toLowerCase();
+    if (state.isGameOver) {
+      if (e.code === 'Enter' || e.code === 'Space') restartGame();
+      return;
+    }
+    if (key === 'w' || e.key === 'ArrowUp') setAccelerate(true);
+    if (key === 's' || e.key === 'ArrowDown') setBrake(true);
+    if (e.shiftKey) setBoost(true);
+    if (e.code === 'Space') {
+      e.preventDefault();
+      triggerHydraulicJump();
+    }
+    if (key === 'l') toggleLighting();
+    if (key === 'm') soundBtn.click();
+    if (key === 'r') restartGame();
+  });
+
+  window.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
+    if (key === 'w' || e.key === 'ArrowUp') setAccelerate(false);
+    if (key === 's' || e.key === 'ArrowDown') setBrake(false);
+    if (!e.shiftKey) setBoost(false);
+  });
+
+  // ==========================================================
+  // PARTICLES
+  // ==========================================================
+  let lastParticleTime = 0;
+  function spawnTireSmoke() {
+    if (state.speed < 10 && !state.isAccelerating && !state.isBraking) return;
+    const now = performance.now();
+    if (now - lastParticleTime < 60) return;
+    lastParticleTime = now;
+
+    const truckRect = truckAssembly.getBoundingClientRect();
+    const spawnX = truckRect.left + (truckRect.width * 0.28) + (Math.random() * 20 - 10);
+    const spawnY = truckRect.top + (truckRect.height * 0.88);
+
+    const puff = document.createElement('div');
+    puff.className = 'smoke-puff';
+    const sz = state.isBraking ? 28 + Math.random() * 25 : 16 + Math.random() * 20;
+    puff.style.width = sz + 'px';
+    puff.style.height = sz + 'px';
+    puff.style.left = spawnX + 'px';
+    puff.style.top = spawnY + 'px';
+
+    tireSmokeLayer.appendChild(puff);
+
+    const startTime = performance.now();
+    const duration = 600 + Math.random() * 400;
+    const moveX = -(120 + state.speed * 2.5);
+    const moveY = -(20 + Math.random() * 40);
+
+    function stepPuff(curr: number) {
+      const elapsed = curr - startTime;
+      const progress = elapsed / duration;
+      if (progress >= 1) {
+        puff.remove();
+        return;
+      }
+      puff.style.transform = `translate(${moveX * progress}px, ${moveY * progress}px) scale(${1 + progress * 2.2})`;
+      puff.style.opacity = `${(1 - progress) * 0.7}`;
+      requestAnimationFrame(stepPuff);
+    }
+    requestAnimationFrame(stepPuff);
+  }
+
+  // ==========================================================
+  // MAIN GAME & PHYSICS LOOP
+  // ==========================================================
+  let roadOffset = 0;
+  let cityOffset = 0;
+  let midOffset = 0;
+
+  function updateSimulation() {
+    if (state.isGameOver) {
+      requestAnimationFrame(updateSimulation);
+      return;
+    }
+
+    const maxNormalSpeed = 160;
+    const maxBoostSpeed = 225;
+    const currentMax = state.isBoosting ? maxBoostSpeed : maxNormalSpeed;
+
+    // 1. Acceleration & Fuel Consumption
+    if (state.isAccelerating) {
+      const accelRate = state.isBoosting ? 1.6 : 0.85;
+      state.speed += accelRate;
+      if (state.speed > currentMax) state.speed = currentMax;
+
+      // Fuel burn: burning more fuel while accelerating or boosting!
+      const burnRate = state.isBoosting ? 0.05 : 0.02;
+      state.fuel -= burnRate;
+    } else {
+      state.speed *= 0.988;
+      if (state.speed < 0.1) state.speed = 0;
+      // Idle fuel burn
+      if (state.speed > 5) state.fuel -= 0.005;
+    }
+
+    // Check fuel game over
+    if (state.fuel <= 0) {
+      state.fuel = 0;
+      triggerGameOver('fuel');
+    }
+    fuelBar.style.width = state.fuel + '%';
+    fuelVal.textContent = Math.floor(state.fuel) + '%';
+
+    // 2. Braking
+    if (state.isBraking) {
+      state.speed -= 2.2;
+      if (state.speed < 0) state.speed = 0;
+      const brakeHeat = Math.min(1, state.speed / 80);
+      brakeDiscFront.setAttribute('fill', `rgba(255, ${Math.floor(100 - brakeHeat * 80)}, 0, ${0.4 + brakeHeat * 0.6})`);
+      brakeDiscRear.setAttribute('fill', `rgba(255, ${Math.floor(100 - brakeHeat * 80)}, 0, ${0.4 + brakeHeat * 0.6})`);
+    } else {
+      brakeDiscFront.setAttribute('fill', '#1e293b');
+      brakeDiscRear.setAttribute('fill', '#1e293b');
+    }
+
+    // 3. Nitro
+    if (state.isBoosting) {
+      state.nitroLeft -= 0.6;
+      if (state.nitroLeft <= 0) {
+        state.nitroLeft = 0;
+        setBoost(false);
+      }
+      exhaustFlame.style.opacity = '1';
+      exhaustFlame.style.transform = `scaleX(-1) scale(${1 + Math.random() * 0.3})`;
+    } else {
+      exhaustFlame.style.opacity = '0';
+      if (state.nitroLeft < 100) state.nitroLeft += 0.08;
+    }
+    nitroBar.style.width = state.nitroLeft + '%';
+    nitroLevel.textContent = Math.floor(state.nitroLeft) + '%';
+
+    // 4. Transmission
+    if (state.speed < 1) {
+      state.gear = 'P';
+      state.rpm = state.isAccelerating ? 2400 : 850;
+    } else {
+      const s = state.speed;
+      if (s < 30) { state.gear = '1'; state.rpm = 1500 + (s / 30) * 4500; }
+      else if (s < 60) { state.gear = '2'; state.rpm = 2500 + ((s - 30) / 30) * 4500; }
+      else if (s < 100) { state.gear = '3'; state.rpm = 2800 + ((s - 60) / 40) * 4200; }
+      else if (s < 145) { state.gear = '4'; state.rpm = 3200 + ((s - 100) / 45) * 4400; }
+      else if (s < 185) { state.gear = '5'; state.rpm = 3800 + ((s - 145) / 40) * 4200; }
+      else { state.gear = '6'; state.rpm = 4500 + ((s - 185) / 40) * 3800; }
+    }
+    gearIndicator.textContent = state.gear;
+    rpmBar.style.width = Math.min(100, (state.rpm / 8500) * 100) + '%';
+    rpmVal.textContent = Math.floor(state.rpm).toString();
+
+    // 5. Speedometer Updates
+    const displaySpeed = Math.floor(state.speed);
+    speedDigit.textContent = displaySpeed.toString();
+
+    const needleDeg = -130 + (Math.min(240, state.speed) / 240) * 260;
+    speedNeedle.setAttribute('transform', `rotate(${needleDeg}, 120, 125)`);
+
+    const maxOffset = 350;
+    const arcPercent = Math.min(1, state.speed / 240);
+    gaugeSpeedArc.setAttribute('stroke-dashoffset', (maxOffset * (1 - arcPercent)).toString());
+
+    // 6. Distance & Score accumulation
+    if (state.speed > 1) {
+      const distDelta = (state.speed * (1000 / 3600)) * (1 / 60);
+      state.distance += distDelta;
+      state.score += Math.floor(distDelta * 2);
+      distDisplay.textContent = Math.floor(state.distance) + 'm';
+      scoreDisplay.textContent = state.score.toLocaleString();
+    }
+
+    // 7. Suspension & Jump Physics
+    let targetPitch = 0;
+    if (state.isAccelerating) targetPitch = state.isBoosting ? -3.5 : -2.0;
+    if (state.isBraking) targetPitch = 3.2;
+    state.pitchAngle += (targetPitch - state.pitchAngle) * 0.12;
+
+    let jumpY = 0;
+    if (state.isJumping) {
+      state.jumpPhase += 0.08;
+      jumpY = -Math.sin(state.jumpPhase * Math.PI) * 85 * Math.exp(-state.jumpPhase * 0.45);
+      if (state.jumpPhase >= 2.5) {
+        state.isJumping = false;
+        state.jumpPhase = 0;
+      }
+    }
+
+    // Obstacle Climb bump decay
+    state.climbBumpY *= 0.88;
+
+    // Apply Truck transform
+    const forwardSurge = (state.speed / 200) * 45;
+    const rumbleY = (state.speed > 5) ? (Math.random() * 2.5 - 1.25) * (state.speed / 100) : 0;
+    const totalY = jumpY + rumbleY - state.climbBumpY;
+    truckAssembly.style.transform = `translateX(calc(-50% + ${forwardSurge}px)) translateY(${totalY}px) rotate(${state.pitchAngle}deg)`;
+
+    // 8. Wheels Clockwise Forward Rotation
+    const wheelRotSpeed = (state.speed / 100) * 24;
+    state.wheelAngle = (state.wheelAngle + wheelRotSpeed) % 360;
+    const forwardWheelDeg = -state.wheelAngle;
+
+    if (wf) wf.setAttribute('transform', `translate(285, 410) rotate(${forwardWheelDeg})`);
+    if (wr) wr.setAttribute('transform', `translate(565, 410) rotate(${forwardWheelDeg})`);
+    if (wfb) wfb.setAttribute('transform', `translate(260, 410) scale(0.92) rotate(${forwardWheelDeg})`);
+    if (wrb) wrb.setAttribute('transform', `translate(590, 410) scale(0.92) rotate(${forwardWheelDeg})`);
+
+    // 9. Parallax Background Motion
+    const velocityFactor = state.speed * 0.35;
+    roadOffset = (roadOffset - velocityFactor * 1.8) % 140;
+    midOffset = (midOffset - velocityFactor * 0.25) % 800;
+    cityOffset = (cityOffset - velocityFactor * 0.06) % 1200;
+
+    roadLanes.style.transform = `translateX(${roadOffset}px)`;
+    midgroundLayer.style.backgroundPosition = `${midOffset}px bottom`;
+    citySkyline.style.backgroundPosition = `${cityOffset}px bottom`;
+
+    // 10. SPAWN & UPDATE OBSTACLES (COLLISION DETECTION & CAR CRUSHING)
+    if (state.distance - lastSpawnDistance > 45) {
+      spawnObstacle();
+      lastSpawnDistance = state.distance;
+    }
+
+    const truckRect = truckAssembly.getBoundingClientRect();
+    const truckFrontX = truckRect.left + truckRect.width * 0.65;
+    const truckRearX = truckRect.left + truckRect.width * 0.25;
+    const isTruckAirborne = jumpY < -40; // Truck jumped high over obstacles!
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      // Move obstacle leftwards with road speed
+      obs.x -= velocityFactor * 1.8;
+      obs.element.style.left = obs.x + 'px';
+
+      const obsRect = obs.element.getBoundingClientRect();
+      const isOverlapX = (obsRect.right > truckRearX && obsRect.left < truckFrontX);
+
+      // COLLISION LOGIC
+      if (isOverlapX && !obs.isCollected) {
+        if (obs.type === 'car' && !obs.isCrushed) {
+          // MONSTER TRUCK CRUSHES CAR!
+          obs.isCrushed = true;
+          obs.element.classList.add('crushed');
+          playMetalCrunch();
+          state.climbBumpY = 22; // truck body jumps up slightly climbing over car
+          state.carsCrushed++;
+          state.score += 150;
+          crushDisplay.textContent = state.carsCrushed.toString();
+          scoreDisplay.textContent = state.score.toLocaleString();
+          showFloatingPopup('+150 CRUSHED!', 'crush', obsRect.left, obsRect.top - 20);
+
+          // Spawn scrap metal debris particles
+          for (let p = 0; p < 8; p++) {
+            const spark = document.createElement('div');
+            spark.style.cssText = `
+              position: absolute; width: 6px; height: 6px; border-radius: 50%;
+              background: #f59e0b; box-shadow: 0 0 10px #f59e0b;
+              left: ${obsRect.left + Math.random() * 80}px;
+              top: ${obsRect.top + Math.random() * 20}px;
+              z-index: 200; pointer-events: none;
+            `;
+            popupsLayer.appendChild(spark);
+            setTimeout(() => spark.remove(), 400);
+          }
+        } else if (obs.type === 'fuel') {
+          // COLLECT FUEL!
+          obs.isCollected = true;
+          obs.element.remove();
+          playFuelPickup();
+          state.fuel = Math.min(100, state.fuel + 28);
+          state.score += 50;
+          scoreDisplay.textContent = state.score.toLocaleString();
+          showFloatingPopup('+28% FUEL!', 'fuel', obsRect.left, obsRect.top - 20);
+        } else if (obs.type === 'barrel' && !isTruckAirborne) {
+          // HIT EXPLOSIVE BARREL!
+          obs.isCollected = true;
+          obs.element.remove();
+          playExplosion();
+
+          if (state.isBoosting) {
+            // Nitro armor smashes barrel!
+            state.score += 100;
+            scoreDisplay.textContent = state.score.toLocaleString();
+            showFloatingPopup('BARREL SMASHED! +100', 'crush', obsRect.left, obsRect.top - 20);
+          } else {
+            // Damage hull!
+            state.health -= 20;
+            state.speed *= 0.6; // slows down
+            if (state.health <= 0) {
+              state.health = 0;
+              triggerGameOver('wreck');
+            }
+            healthBar.style.width = state.health + '%';
+            healthVal.textContent = Math.floor(state.health) + '%';
+            showFloatingPopup('-20% HULL DAMAGE!', 'damage', obsRect.left, obsRect.top - 20);
+
+            // Red screen shake / flash
+            truckAssembly.style.filter = 'drop-shadow(0 0 35px #ef4444)';
+            setTimeout(() => { truckAssembly.style.filter = 'none'; }, 300);
+          }
+        }
+      }
+
+      // Remove obstacles that scrolled past behind the screen
+      if (obs.x < -200) {
+        obs.element.remove();
+        obstacles.splice(i, 1);
+      }
+    }
+
+    spawnTireSmoke();
+    updateAudioPitch();
+
+    requestAnimationFrame(updateSimulation);
+  }
+
+  requestAnimationFrame(updateSimulation);
+</script>
